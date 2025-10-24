@@ -1,140 +1,147 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Notio — Session Planner</title>
 <style>
   :root{--ink:#111;--muted:#666;--line:#d9d9d9;--box:#f7f7f7;--green:#E0F3E4}
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;background:#fff;color:var(--ink);font:14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-  .toolbar{position:sticky;top:0;z-index:10;display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:#fff}
+
+  /* Top bars */
+  .toolbar{position:sticky;top:0;z-index:20;display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:#fff}
   .toolbar h1{font-size:16px;margin:0}
-  .toolbar .sp{flex:1}
-  button{appearance:none;background:#fff;border:1px solid var(--line);padding:8px 12px;border-radius:10px;cursor:pointer}
-  button.primary{background:#111;color:#fff;border-color:#111}
+  .sp{flex:1}
+
+  /* Global draw toolbar */
+  .drawbar{position:sticky;top:52px;z-index:19;background:#fff;border-bottom:1px solid var(--line);padding:8px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .badge{display:inline-block;padding:4px 8px;border:1px solid var(--line);border-radius:8px;font-size:12px;color:#555}
+  button{appearance:none;background:#fff;border:1px solid var(--line);padding:7px 10px;border-radius:10px;cursor:pointer}
   button.small{padding:6px 8px;border-radius:8px;font-size:12px}
-  button:disabled{opacity:.6;cursor:not-allowed}
-  .page{display:grid;grid-template-columns:1fr;gap:16px;padding:16px;max-width:1200px;margin:0 auto}
-  @media (min-width:1024px){ .page{grid-template-columns:1fr 1fr} }
+  button.primary{background:#111;color:#fff;border-color:#111}
+  button.active{outline:2px solid #111}
+  .chip{font-size:12px;color:#555}
+  .icon{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:4px}
+  .icon.blue{background:#3b82f6}.icon.red{background:#ef4444}.icon.orange{background:#f59e0b}
+  .icon.ball{background:radial-gradient(circle at 50% 50%, #fff 40%, #111 41%)}
+
+  /* Page and cards */
+  .page{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:14px}
   .card{border:1px solid var(--line);border-radius:16px;padding:12px}
   .title{font-weight:600;color:#444;margin:0 0 8px 0;font-size:13px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .row-30-70{grid-template-columns:30% 70%}
   label .lab{display:block;color:#666;font-size:12px;margin-bottom:4px}
   input[type=text], textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff}
   textarea{min-height:64px;resize:vertical}
-  .grid{display:grid;gap:8px}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .row-30-70{grid-template-columns:30% 70%}
+
+  /* Summary */
   .summary{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--box)}
   .summary .hdr, .summary .r{display:grid;grid-template-columns:20% 20% 60%}
   .summary .hdr{font-size:12px;font-weight:600;color:#666;border-bottom:1px solid var(--line)}
   .summary .hdr>div, .summary .r>div{padding:6px 8px;border-left:1px solid var(--line)}
   .summary .hdr>div:first-child, .summary .r>div:first-child{border-left:0}
-  .drill{border:1px solid var(--line);border-radius:12px;padding:10px;margin:10px 0}
-  .two-col{display:grid;grid-template-columns:54% 46%;gap:10px}
-  .mini-lab{font-weight:600;color:#555;font-size:12px;margin:8px 0 4px}
-  .notes{border:1px solid var(--line);border-radius:10px;height:120px}
-  .footer{color:#999;font-size:11px;text-align:right;margin-top:8px}
+
+  /* Drills */
+  .drill{border:1px solid var(--line);border-radius:12px;padding:12px}
+  .drill .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .two-col{display:grid;grid-template-columns:56% 44%;gap:12px}
+
   /* Pitch + drawing */
   .pitch{position:relative;background:var(--green);border:1px solid #aaa;border-radius:12px;aspect-ratio:13/10;width:100%;overflow:hidden}
   .pitch svg{width:100%;height:100%;display:block}
-  .draw-layer,.grid-canvas{position:absolute;inset:0}
-  .grid-canvas{pointer-events:none}
-  .draw-toolbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
-  .draw-toolbar .group{display:flex;gap:6px}
-  .badge{display:inline-block;border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:12px;color:#555}
-  .icon{display:inline-block;width:14px;height:14px;border-radius:50%}
-  .icon.blue{background:#3b82f6}.icon.red{background:#ef4444}.icon.orange{background:#f59e0b}
-  .icon.ball{background:radial-gradient(circle at 50% 50%, #fff 40%, #111 41%)}
-  .grid-toggle{margin-left:auto}
-  /* Print */
+  .draw-layer,.grid-layer{position:absolute;inset:0}
+  .grid-layer{pointer-events:none}
+  .active-pitch{outline:3px solid #111; outline-offset:3px}
+
+  .mini-lab{font-weight:600;color:#555;font-size:12px;margin:8px 0 4px}
+  .notes{border:1px solid var(--line);border-radius:10px;height:120px}
+  .footer{color:#999;font-size:11px;text-align:right;margin-top:6px}
+
   @media print{
-    .toolbar{display:none}
-    .page{display:block;max-width:unset}
-    .print-wrapper{margin:10mm}
-    input, textarea{border:none !important;outline:none !important;box-shadow:none !important;padding:0 !important}
+    .toolbar,.drawbar{display:none}
+    .page{padding:0}
+    input,textarea{border:none !important}
+    @page{size:A4 portrait;margin:10mm}
   }
 </style>
 </head>
 <body>
+
+  <!-- Top toolbar -->
   <div class="toolbar">
     <h1>Notio — Session Planner</h1>
     <div class="sp"></div>
-    <button id="btnExport" class="primary">Print / Export PDF</button>
-    <button id="btnUndo">Undo</button>
-    <button id="btnAdd">+ Add Drill</button>
+    <button id="btnPrint" class="primary">Print / Export PDF</button>
   </div>
 
-  <div class="page">
-    <!-- LEFT: Editor -->
-    <div class="grid">
-      <div class="card">
-        <div class="title">Session Header</div>
-        <div class="row">
-          <label><span class="lab">Session Title</span><input type="text" id="title" placeholder="e.g., Possession Under Pressure"></label>
-          <label><span class="lab">Age Group</span><input type="text" id="ageGroup" placeholder="e.g., U14–U16"></label>
-        </div>
-        <div class="row row-30-70" style="margin-top:8px">
-          <label><span class="lab">Players</span><input type="text" id="players" placeholder="e.g., 16"></label>
-          <label><span class="lab">Objective</span><input type="text" id="objective" placeholder="e.g., Circulation speed & support angles"></label>
-          <label><span class="lab">Area needed</span><input type="text" id="area" placeholder="e.g., 40x30m (two grids)"></label>
-          <label><span class="lab">Equipment</span><input type="text" id="equipment" placeholder="e.g., Balls, cones, bibs, 2 goals"></label>
-        </div>
-      </div>
+  <!-- Global drawing toolbar (one tool for ALL pitches) -->
+  <div class="drawbar" id="drawbar">
+    <span class="badge">Tools</span>
+    <button class="small" data-tool="pen">Pen</button>
+    <button class="small" data-tool="eraser">Eraser</button>
+    <button class="small" data-tool="arrow">Arrow</button>
 
-      <div class="card">
-        <div class="title">Drill Overview (edit here — preview on the right)</div>
-        <div class="summary" id="overviewEditor">
-          <div class="hdr"><div>Drill</div><div>Duration</div><div>Purpose / Notes</div></div>
-          <!-- Rows inserted by JS -->
-        </div>
-      </div>
+    <span class="badge">Stamps</span>
+    <button class="small" data-tool="playerA"><span class="icon blue"></span>A</button>
+    <button class="small" data-tool="playerB"><span class="icon red"></span>B</button>
+    <button class="small" data-tool="cone"><span class="icon orange"></span>Cone</button>
+    <button class="small" data-tool="ball"><span class="icon ball"></span>Ball</button>
 
-      <div class="card">
-        <div class="title">Drills (editable)</div>
-        <div id="drills"></div>
+    <span class="badge">Actions</span>
+    <button class="small" data-act="undo">Undo</button>
+    <button class="small" data-act="redo">Redo</button>
+    <button class="small" data-act="clear">Clear</button>
+    <button class="small" data-act="grid">Grid</button>
+
+    <span class="sp"></span>
+    <span class="chip" id="activeChip">Editing: Drill 1</span>
+  </div>
+
+  <div class="page" id="app">
+
+    <!-- Header -->
+    <div class="card">
+      <div class="title">Session Header</div>
+      <div class="row">
+        <label><span class="lab">Session Title</span><input type="text" id="title"></label>
+        <label><span class="lab">Age Group</span><input type="text" id="ageGroup"></label>
+      </div>
+      <div class="row row-30-70" style="margin-top:8px">
+        <label><span class="lab">Players</span><input type="text" id="players"></label>
+        <label><span class="lab">Objective</span><input type="text" id="objective"></label>
+        <label><span class="lab">Area needed</span><input type="text" id="area"></label>
+        <label><span class="lab">Equipment</span><input type="text" id="equipment"></label>
       </div>
     </div>
 
-    <!-- RIGHT: Locked Print Preview -->
-    <div class="print-wrapper">
-      <div style="font-size:12px;color:#777">Duplicate this document before editing your own sessions.</div>
-      <div class="row" style="border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:8px">
-        <div><span style="font-weight:600">Session Title:</span> <span id="p_title"></span></div>
-        <div><span style="font-weight:600">Age Group:</span> <span id="p_ageGroup"></span></div>
-      </div>
-      <div class="row row-30-70" style="border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:8px">
-        <div>
-          <div><span style="font-weight:600">Players:</span> <span id="p_players"></span></div>
-          <div><span style="font-weight:600">Area needed:</span> <span id="p_area"></span></div>
-        </div>
-        <div>
-          <div><span style="font-weight:600">Objective:</span> <span id="p_objective"></span></div>
-          <div><span style="font-weight:600">Equipment:</span> <span id="p_equipment"></span></div>
-        </div>
-      </div>
-
-      <div class="summary" id="overviewPreview">
+    <!-- Overview -->
+    <div class="card">
+      <div class="title">Drill Overview (editable)</div>
+      <div class="summary" id="overview">
         <div class="hdr"><div>Drill</div><div>Duration</div><div>Purpose / Notes</div></div>
-        <!-- Locked rows inserted by JS -->
+        <!-- rows injected -->
       </div>
+    </div>
 
-      <div id="previewDrills" style="margin-top:10px"></div>
+    <!-- Drills -->
+    <div id="drills"></div>
 
-      <div style="margin-top:10px">
-        <div class="mini-lab">Coach Notes / Reflection</div>
-        <div class="notes"></div>
-      </div>
+    <!-- Notes -->
+    <div class="card">
+      <div class="title">Coach Notes / Reflection</div>
+      <div class="notes"></div>
       <div class="footer">Template by Alex Hammond-Cole | Notio (Web)</div>
     </div>
   </div>
 
 <script>
 (function(){
-  const $ = (sel, root=document) => root.querySelector(sel);
-  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  const $ = (s,root=document)=>root.querySelector(s);
+  const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
 
-  // Defaults (based on your table)
+  // ---- Data ----
   const defaultDrills = [
     { name:"Passing Practice",   duration:"~10 min",    purpose:"Warm up & intro of session focus", setup:"", exercise:"", progression:"" },
     { name:"Positioning Game",   duration:"~10–15 min", purpose:"Posession Game",                    setup:"", exercise:"", progression:"" },
@@ -145,274 +152,88 @@
   const state = {
     title:"", ageGroup:"", players:"", objective:"", area:"", equipment:"",
     drills: JSON.parse(JSON.stringify(defaultDrills)),
-    drawings: [] // per-drill drawing stacks
+    drawings: [],      // per-drill {actions:[], redo:[], grid:false}
+    active: 0,         // active drill index for drawing
+    tool: 'pen'
   };
-  state.drawings = state.drills.map(()=>({ actions:[], grid:false }));
+  state.drawings = state.drills.map(()=>({actions:[],redo:[],grid:false}));
 
-  const history = [];
-  const snapshot = () => JSON.parse(JSON.stringify(state));
-  const pushHistory = () => history.push(snapshot());
-  const undo = () => { if(!history.length) return; const prev=history.pop(); Object.assign(state, prev); renderAll(); };
-
-  // Bind header inputs
+  // ---- UI: header + overview ----
   ["title","ageGroup","players","objective","area","equipment"].forEach(id=>{
-    const el=$("#"+id);
-    el.addEventListener("input", ()=>{ pushHistory(); state[id]=el.value; renderHeader(); });
+    $("#"+id).addEventListener("input", e=>{ state[id]=e.target.value; });
   });
 
-  // Overview editor (left)
-  const overviewEditor = $("#overviewEditor");
-  function renderOverviewEditor(){
-    $$(".r", overviewEditor).forEach(n=>n.remove());
+  const overview = $("#overview");
+  function renderOverview(){
+    $$(".r", overview).forEach(n=>n.remove());
     state.drills.forEach((d,i)=>{
-      const row=document.createElement("div");
-      row.className="r";
+      const row = document.createElement("div");
+      row.className = "r";
       row.innerHTML = `
-        <div><input type="text" value="${esc(d.name)}" data-k="name" data-i="${i}"></div>
-        <div><input type="text" value="${esc(d.duration)}" data-k="duration" data-i="${i}"></div>
-        <div><input type="text" value="${esc(d.purpose)}" data-k="purpose" data-i="${i}"></div>`;
-      overviewEditor.appendChild(row);
+        <div><input type="text" value="${esc(d.name)}" data-i="${i}" data-k="name"></div>
+        <div><input type="text" value="${esc(d.duration)}" data-i="${i}" data-k="duration"></div>
+        <div><input type="text" value="${esc(d.purpose)}" data-i="${i}" data-k="purpose"></div>
+      `;
+      overview.appendChild(row);
     });
-    $$("input", overviewEditor).forEach(inp=>{
+    $$("input", overview).forEach(inp=>{
       inp.addEventListener("input", e=>{
-        pushHistory();
-        const i=+e.target.getAttribute("data-i");
-        const k=e.target.getAttribute("data-k");
+        const i=+e.target.dataset.i, k=e.target.dataset.k;
         state.drills[i][k]=e.target.value;
-        renderOverviewPreview(); renderPreviewDrills();
+        // also reflect name into drill header immediately
+        const hdr = $(`.drill[data-i="${i}"] .name`);
+        if(hdr && k==="name") hdr.textContent = e.target.value || `Drill ${i+1}`;
       });
     });
   }
 
-  // Overview preview (right)
-  const overviewPreview = $("#overviewPreview");
-  function renderOverviewPreview(){
-    $$(".r", overviewPreview).forEach(n=>n.remove());
-    state.drills.forEach(d=>{
-      const row=document.createElement("div");
-      row.className="r";
-      row.innerHTML = `<div>${esc(d.name)}</div><div>${esc(d.duration)}</div><div>${esc(d.purpose)}</div>`;
-      overviewPreview.appendChild(row);
-    });
+  // ---- Global draw toolbar ----
+  const drawbar = $("#drawbar");
+  function setActiveTool(tool){
+    state.tool = tool;
+    $$("button[data-tool]", drawbar).forEach(b=>b.classList.toggle("active", b.dataset.tool===tool));
   }
+  setActiveTool('pen');
+  drawbar.addEventListener("click", e=>{
+    const btn = e.target.closest("button");
+    if(!btn) return;
+    const tool = btn.dataset.tool;
+    const act  = btn.dataset.act;
+    if(tool){ setActiveTool(tool); return; }
 
-  // Drawing tools
-  const TOOL = { PEN:'pen', ERASER:'eraser', ARROW:'arrow', A:'playerA', B:'playerB', CONE:'cone', BALL:'ball' };
-
-  function addDrawToolbar(container, i){
-    const bar=document.createElement("div");
-    bar.className="draw-toolbar";
-    bar.innerHTML = `
-      <span class="badge">Draw:</span>
-      <div class="group">
-        <button class="small" data-tool="pen">Pen</button>
-        <button class="small" data-tool="eraser">Eraser</button>
-        <button class="small" data-tool="arrow">Arrow</button>
-      </div>
-      <span class="badge">Stamp:</span>
-      <div class="group">
-        <button class="small" data-tool="playerA"><span class="icon blue"></span> A</button>
-        <button class="small" data-tool="playerB"><span class="icon red"></span> B</button>
-        <button class="small" data-tool="cone"><span class="icon orange"></span> Cone</button>
-        <button class="small" data-tool="ball"><span class="icon ball"></span> Ball</button>
-      </div>
-      <div class="group grid-toggle">
-        <button class="small" data-act="undo">Undo</button>
-        <button class="small" data-act="clear">Clear</button>
-        <button class="small" data-act="grid">Grid</button>
-      </div>`;
-    container.appendChild(bar);
-
-    let tool=TOOL.PEN;
-    bar.addEventListener("click", (e)=>{
-      const b=e.target.closest("button"); if(!b) return;
-      const t=b.getAttribute("data-tool");
-      const a=b.getAttribute("data-act");
-      if(t){ tool=t; b.blur(); }
-      if(a==="undo"){ pushHistory(); state.drawings[i].actions.pop(); renderCanvas(i); }
-      if(a==="clear"){ pushHistory(); state.drawings[i].actions=[]; renderCanvas(i); }
-      if(a==="grid"){ state.drawings[i].grid=!state.drawings[i].grid; renderCanvas(i); }
-    });
-    return ()=>tool;
-  }
-
-  function makePitch(i){
-    const wrap=document.createElement("div");
-    wrap.innerHTML = `
-      <div class="pitch">
-        <svg viewBox="0 0 1000 650">
-          <rect x="10" y="10" width="980" height="630" fill="none" stroke="#AAAAAA" stroke-width="3"/>
-          <line x1="20" y1="40" x2="980" y2="40" stroke="#BBBBBB" stroke-width="2"/>
-          <rect x="160" y="300" width="680" height="260" fill="none" stroke="#AAAAAA" stroke-width="2"/>
-          <rect x="260" y="410" width="480" height="150" fill="none" stroke="#AAAAAA" stroke-width="2"/>
-          <circle cx="500" cy="360" r="6" fill="#AAAAAA"/>
-        </svg>
-        <canvas class="draw-layer" data-i="${i}"></canvas>
-        <canvas class="grid-canvas" data-i="${i}"></canvas>
-      </div>`;
-    return wrap.firstElementChild;
-  }
-
-  function renderGrid(ctx, w, h){
-    ctx.clearRect(0,0,w,h);
-    ctx.strokeStyle='#d0e8d4'; ctx.lineWidth=1;
-    const step = Math.max(16, Math.min(w,h)/20);
-    for(let x=0;x<=w;x+=step){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
-    for(let y=0;y<=h;y+=step){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
-  }
-
-  function renderCanvas(i){
-    const layer = document.querySelector(`.pitch canvas.draw-layer[data-i="${i}"]`);
-    if(!layer) return;
-    const gridC = document.querySelector(`.pitch canvas.grid-canvas[data-i="${i}"]`);
-    const resize = ()=>{
-      const r=layer.parentElement.getBoundingClientRect();
-      layer.width=r.width; layer.height=r.height;
-      gridC.width=r.width; gridC.height=r.height;
-    };
-    resize();
-
-    const ctx = layer.getContext("2d");
-    ctx.clearRect(0,0,layer.width,layer.height);
-
-    if(state.drawings[i].grid){
-      renderGrid(gridC.getContext("2d"), gridC.width, gridC.height);
-    } else {
-      gridC.getContext("2d").clearRect(0,0,gridC.width,gridC.height);
+    const D = state.drawings[state.active];
+    if(act==="undo"){
+      if(D.actions.length){ D.redo.push(D.actions.pop()); renderCanvas(state.active); }
+    } else if(act==="redo"){
+      if(D.redo.length){ D.actions.push(D.redo.pop()); renderCanvas(state.active); }
+    } else if(act==="clear"){
+      D.actions = []; D.redo = []; renderCanvas(state.active);
+    } else if(act==="grid"){
+      D.grid = !D.grid; renderCanvas(state.active);
     }
+  });
 
-    for(const a of state.drawings[i].actions){
-      if(a.type==="path"){
-        ctx.strokeStyle=a.color; ctx.lineWidth=a.w; ctx.lineCap='round'; ctx.lineJoin='round';
-        ctx.beginPath(); a.pts.forEach((p,j)=> j?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.stroke();
-      } else if(a.type==="arrow"){
-        ctx.strokeStyle=a.color; ctx.lineWidth=a.w; ctx.beginPath(); ctx.moveTo(a.x1,a.y1); ctx.lineTo(a.x2,a.y2); ctx.stroke();
-        const ang=Math.atan2(a.y2-a.y1,a.x2-a.x1), head=12;
-        ctx.beginPath();
-        ctx.moveTo(a.x2,a.y2);
-        ctx.lineTo(a.x2-head*Math.cos(ang-Math.PI/6), a.y2-head*Math.sin(ang-Math.PI/6));
-        ctx.moveTo(a.x2,a.y2);
-        ctx.lineTo(a.x2-head*Math.cos(ang+Math.PI/6), a.y2-head*Math.sin(ang+Math.PI/6));
-        ctx.stroke();
-      } else if(a.type==="stamp"){
-        if(a.kind==="playerA"||a.kind==="playerB"){
-          ctx.fillStyle = a.kind==="playerA" ? "#3b82f6" : "#ef4444";
-          ctx.beginPath(); ctx.arc(a.x,a.y,10,0,Math.PI*2); ctx.fill();
-        } else if(a.kind==="cone"){
-          ctx.fillStyle="#f59e0b"; ctx.beginPath();
-          ctx.moveTo(a.x,a.y-10); ctx.lineTo(a.x-9,a.y+8); ctx.lineTo(a.x+9,a.y+8); ctx.closePath(); ctx.fill();
-        } else if(a.kind==="ball"){
-          ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(a.x,a.y,9,0,Math.PI*2); ctx.fill();
-          ctx.strokeStyle="#111"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(a.x,a.y,9,0,Math.PI*2); ctx.stroke();
-        }
-      }
-    }
-  }
-
-  function attachCanvas(i, getTool){
-    const c = document.querySelector(`.pitch canvas.draw-layer[data-i="${i}"]`);
-    const S = state.drawings[i];
-    let drawing=false, cur=null;
-
-    function p(e){
-      const r=c.getBoundingClientRect();
-      const x=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
-      const y=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
-      return {x,y};
-    }
-
-    function down(e){
-      e.preventDefault();
-      const tool=getTool(); pushHistory();
-      const pt=p(e);
-      if(tool==='pen'){ drawing=true; cur={type:'path', color:'#111', w:3, pts:[pt]}; S.actions.push(cur); }
-      else if(tool==='eraser'){ drawing=true; cur={type:'path', color:'#fff', w:16, pts:[pt]}; S.actions.push(cur); }
-      else if(tool==='arrow'){ drawing=true; cur={type:'arrow', color:'#111', w:3, x1:pt.x, y1:pt.y, x2:pt.x, y2:pt.y}; S.actions.push(cur); }
-      else { S.actions.push({type:'stamp', kind:tool, x:pt.x, y:pt.y}); }
-      renderCanvas(i);
-    }
-    function move(e){
-      if(!drawing) return;
-      const pt=p(e);
-      if(cur.type==='path'){ cur.pts.push(pt); }
-      else if(cur.type==='arrow'){ cur.x2=pt.x; cur.y2=pt.y; }
-      renderCanvas(i);
-    }
-    function up(){ drawing=false; cur=null; }
-
-    c.addEventListener('mousedown', down);
-    c.addEventListener('mousemove', move);
-    window.addEventListener('mouseup', up);
-    c.addEventListener('touchstart', down, {passive:false});
-    c.addEventListener('touchmove', move, {passive:false});
-    c.addEventListener('touchend', up);
-
-    new ResizeObserver(()=>renderCanvas(i)).observe(c.parentElement);
-  }
-
-  // Drills editor and preview
-  const drillsRoot=$("#drills");
-  const previewDrills=$("#previewDrills");
-
-  function renderDrillsEditor(){
-    drillsRoot.innerHTML="";
+  // ---- Drills list ----
+  const drillsRoot = $("#drills");
+  function renderDrills(){
+    drillsRoot.innerHTML = "";
     state.drills.forEach((d,i)=>{
-      const box=document.createElement("div");
-      box.className="drill";
-      const getTool=addDrawToolbar(box,i);
-      box.innerHTML += `
-        <div class="title" style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
-          <span>${esc(d.name || ("Drill "+(i+1)))}</span>
-          <button data-act="remove" data-i="${i}" class="small">Remove</button>
-        </div>
+      const card = document.createElement("div");
+      card.className = "card drill";
+      card.dataset.i = i;
+      card.innerHTML = `
+        <div class="hdr"><div class="name">${esc(d.name) || `Drill ${i+1}`}</div></div>
         <div class="two-col">
           <div>
             <div class="mini-lab">Setup</div>
-            <textarea data-k="setup" data-i="${i}">${esc(d.setup)}</textarea>
+            <textarea data-i="${i}" data-k="setup">${esc(d.setup)}</textarea>
             <div class="mini-lab">Exercise</div>
-            <textarea data-k="exercise" data-i="${i}">${esc(d.exercise)}</textarea>
+            <textarea data-i="${i}" data-k="exercise">${esc(d.exercise)}</textarea>
             <div class="mini-lab">Progression</div>
-            <textarea data-k="progression" data-i="${i}">${esc(d.progression)}</textarea>
-          </div>
-          <div></div>
-        </div>`;
-      const right = box.querySelector('.two-col > div:last-child');
-      right.appendChild(makePitch(i));
-      drillsRoot.appendChild(box);
-
-      $$("textarea", box).forEach(t=>{
-        t.addEventListener("input", e=>{
-          pushHistory(); const ii=+e.target.getAttribute("data-i"); const k=e.target.getAttribute("data-k");
-          state.drills[ii][k]=e.target.value; renderPreviewDrills();
-        });
-      });
-      box.querySelector('button[data-act="remove"]').addEventListener('click', ()=>{
-        pushHistory(); state.drills.splice(i,1); state.drawings.splice(i,1); renderAll();
-      });
-
-      attachCanvas(i, getTool);
-      renderCanvas(i);
-    });
-  }
-
-  function renderPreviewDrills(){
-    previewDrills.innerHTML="";
-    state.drills.forEach((d,i)=>{
-      const wrap=document.createElement("div");
-      wrap.className="drill";
-      wrap.innerHTML = `
-        <div class="title" style="margin-bottom:6px">${esc(d.name)}</div>
-        <div class="two-col">
-          <div>
-            <div class="mini-lab">Setup</div>
-            <div style="min-height:40px;border:1px solid var(--line);border-radius:8px;padding:6px">${esc(d.setup)}</div>
-            <div class="mini-lab">Exercise</div>
-            <div style="min-height:40px;border:1px solid var(--line);border-radius:8px;padding:6px">${esc(d.exercise)}</div>
-            <div class="mini-lab">Progression</div>
-            <div style="min-height:40px;border:1px solid var(--line);border-radius:8px;padding:6px">${esc(d.progression)}</div>
+            <textarea data-i="${i}" data-k="progression">${esc(d.progression)}</textarea>
           </div>
           <div>
-            <div class="pitch">
+            <div class="pitch" data-i="${i}" tabindex="0">
               <svg viewBox="0 0 1000 650">
                 <rect x="10" y="10" width="980" height="630" fill="none" stroke="#AAAAAA" stroke-width="3"/>
                 <line x1="20" y1="40" x2="980" y2="40" stroke="#BBBBBB" stroke-width="2"/>
@@ -420,126 +241,161 @@
                 <rect x="260" y="410" width="480" height="150" fill="none" stroke="#AAAAAA" stroke-width="2"/>
                 <circle cx="500" cy="360" r="6" fill="#AAAAAA"/>
               </svg>
-              <img data-draw="${i}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none"/>
+              <canvas class="draw-layer"></canvas>
+              <canvas class="grid-layer"></canvas>
             </div>
           </div>
-        </div>`;
-      previewDrills.appendChild(wrap);
+        </div>
+      `;
+      drillsRoot.appendChild(card);
+
+      // text bindings
+      $$("textarea", card).forEach(t=>{
+        t.addEventListener("input", e=>{
+          const i2=+e.target.dataset.i, k=e.target.dataset.k;
+          state.drills[i2][k]=e.target.value;
+        });
+      });
+
+      // canvas setup
+      const pitch = card.querySelector(".pitch");
+      setupCanvas(pitch, i);
+      if(i===state.active) pitch.classList.add("active-pitch");
+      pitch.addEventListener("click", ()=>setActivePitch(i));
     });
-    // sync draw overlays
-    state.drawings.forEach((_,i)=>{
-      const src=document.querySelector(`.pitch canvas.draw-layer[data-i="${i}"]`);
-      const img=document.querySelector(`img[data-draw="${i}"]`);
-      if(src && img){ img.src = src.toDataURL("image/png"); }
-    });
+    updateActiveChip();
   }
 
-  function renderHeader(){
-    $("#p_title").textContent = state.title;
-    $("#p_ageGroup").textContent = state.ageGroup;
-    $("#p_players").textContent = state.players;
-    $("#p_objective").textContent = state.objective;
-    $("#p_area").textContent = state.area;
-    $("#p_equipment").textContent = state.equipment;
+  function setActivePitch(i){
+    state.active = i;
+    $$(".pitch").forEach(p=>p.classList.remove("active-pitch"));
+    const pitch = $(`.pitch[data-i="${i}"]`);
+    if(pitch) pitch.classList.add("active-pitch");
+    updateActiveChip();
+  }
+  function updateActiveChip(){
+    $("#activeChip").textContent = `Editing: Drill ${state.active+1}`;
   }
 
+  // ---- Canvas drawing engine (global toolbar drives it) ----
+  function setupCanvas(pitch, i){
+    const layer = pitch.querySelector(".draw-layer");
+    const gridL = pitch.querySelector(".grid-layer");
+    function resize(){
+      const r = pitch.getBoundingClientRect();
+      [layer, gridL].forEach(c=>{ c.width=r.width; c.height=r.height; });
+      renderCanvas(i);
+    }
+    new ResizeObserver(resize).observe(pitch);
+    resize();
+
+    let drawing=false, cur=null;
+
+    function pos(e){
+      const r=layer.getBoundingClientRect();
+      const x=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+      const y=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
+      return {x,y};
+    }
+
+    function down(e){
+      e.preventDefault();
+      setActivePitch(i); // select this canvas
+      const tool = state.tool;
+      const D = state.drawings[i];
+      D.redo = []; // break redo chain on new action
+      const p = pos(e);
+      if(tool==='pen'){
+        drawing=true; cur={type:'path', color:'#111', w:3, pts:[p]}; D.actions.push(cur);
+      } else if(tool==='eraser'){
+        drawing=true; cur={type:'path', color:'#fff', w:16, pts:[p]}; D.actions.push(cur);
+      } else if(tool==='arrow'){
+        drawing=true; cur={type:'arrow', color:'#111', w:3, x1:p.x, y1:p.y, x2:p.x, y2:p.y}; D.actions.push(cur);
+      } else { // stamps
+        D.actions.push({type:'stamp', kind:tool, x:p.x, y:p.y});
+      }
+      renderCanvas(i);
+    }
+    function move(e){
+      if(!drawing) return;
+      const p = pos(e);
+      if(cur.type==='path'){ cur.pts.push(p); }
+      else if(cur.type==='arrow'){ cur.x2=p.x; cur.y2=p.y; }
+      renderCanvas(i);
+    }
+    function up(){ drawing=false; cur=null; }
+
+    layer.addEventListener("mousedown", down);
+    layer.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    layer.addEventListener("touchstart", down, {passive:false});
+    layer.addEventListener("touchmove", move, {passive:false});
+    layer.addEventListener("touchend", up);
+  }
+
+  function renderCanvas(i){
+    const pitch = $(`.pitch[data-i="${i}"]`);
+    if(!pitch) return;
+    const layer = pitch.querySelector(".draw-layer");
+    const grid  = pitch.querySelector(".grid-layer");
+    const ctx = layer.getContext("2d");
+    const gtx = grid.getContext("2d");
+    const D = state.drawings[i];
+
+    // background grid
+    gtx.clearRect(0,0,grid.width,grid.height);
+    if(D.grid){
+      gtx.strokeStyle='#d0e8d4'; gtx.lineWidth=1;
+      const step = Math.max(16, Math.min(grid.width,grid.height)/20);
+      for(let x=0;x<=grid.width;x+=step){ gtx.beginPath(); gtx.moveTo(x,0); gtx.lineTo(x,grid.height); gtx.stroke(); }
+      for(let y=0;y<=grid.height;y+=step){ gtx.beginPath(); gtx.moveTo(0,y); gtx.lineTo(grid.width,y); gtx.stroke(); }
+    }
+
+    // draw actions
+    ctx.clearRect(0,0,layer.width,layer.height);
+    for(const a of D.actions){
+      if(a.type==='path'){
+        ctx.strokeStyle=a.color; ctx.lineWidth=a.w; ctx.lineCap='round'; ctx.lineJoin='round';
+        ctx.beginPath(); a.pts.forEach((p,j)=> j?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.stroke();
+      } else if(a.type==='arrow'){
+        ctx.strokeStyle=a.color; ctx.lineWidth=a.w;
+        ctx.beginPath(); ctx.moveTo(a.x1,a.y1); ctx.lineTo(a.x2,a.y2); ctx.stroke();
+        const ang=Math.atan2(a.y2-a.y1,a.x2-a.x1), head=12;
+        ctx.beginPath();
+        ctx.moveTo(a.x2,a.y2);
+        ctx.lineTo(a.x2-head*Math.cos(ang-Math.PI/6), a.y2-head*Math.sin(ang-Math.PI/6));
+        ctx.moveTo(a.x2,a.y2);
+        ctx.lineTo(a.x2-head*Math.cos(ang+Math.PI/6), a.y2-head*Math.sin(ang+Math.PI/6));
+        ctx.stroke();
+      } else if(a.type==='stamp'){
+        if(a.kind==='playerA'||a.kind==='playerB'){
+          ctx.fillStyle=a.kind==='playerA'?'#3b82f6':'#ef4444';
+          ctx.beginPath(); ctx.arc(a.x,a.y,10,0,Math.PI*2); ctx.fill();
+        } else if(a.kind==='cone'){
+          ctx.fillStyle='#f59e0b'; ctx.beginPath();
+          ctx.moveTo(a.x,a.y-10); ctx.lineTo(a.x-9,a.y+8); ctx.lineTo(a.x+9,a.y+8); ctx.closePath(); ctx.fill();
+        } else if(a.kind==='ball'){
+          ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(a.x,a.y,9,0,Math.PI*2); ctx.fill();
+          ctx.strokeStyle='#111'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(a.x,a.y,9,0,Math.PI*2); ctx.stroke();
+        }
+      }
+    }
+  }
+
+  // ---- Print / Export ----
+  $("#btnPrint").addEventListener("click", ()=>window.print());
+
+  // ---- Boot ----
   function renderAll(){
-    ["title","ageGroup","players","objective","area","equipment"].forEach(id=>{ $("#"+id).value = state[id]||""; });
-    renderHeader();
-    renderOverviewEditor();
-    renderOverviewPreview();
-    renderDrillsEditor();
-    renderPreviewDrills();
+    renderOverview();
+    renderDrills();
+    // initial render canvases
+    state.drills.forEach((_,i)=>renderCanvas(i));
   }
-
-  function esc(s){ return String(s??"").replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
-
-  // Toolbar buttons
-  $("#btnUndo").addEventListener("click", undo);
-  $("#btnAdd").addEventListener("click", ()=>{ pushHistory(); state.drills.push({name:"New Drill",duration:"",purpose:"",setup:"",exercise:"",progression:""}); state.drawings.push({actions:[],grid:false}); renderAll(); });
-
-  // Print / Export (works fully in a real browser)
-  $("#btnExport").addEventListener("click", ()=>{
-    renderPreviewDrills(); // ensure overlays are current
-    const html = buildPrintableHTML();
-    const blob = new Blob([html], {type:"text/html"});
-    const url = URL.createObjectURL(blob);
-    const iframe = document.createElement("iframe");
-    iframe.style.position="fixed"; iframe.style.right="0"; iframe.style.bottom="0"; iframe.style.width="0"; iframe.style.height="0"; iframe.style.border="0";
-    document.body.appendChild(iframe);
-    iframe.onload = ()=>{ try{ iframe.contentWindow.focus(); iframe.contentWindow.print(); } finally { setTimeout(()=>{ document.body.removeChild(iframe); URL.revokeObjectURL(url); }, 1000); } };
-    iframe.src = url;
-  });
-
-  function buildPrintableHTML(){
-    const esc = (s)=>String(s??"").replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
-    const imgs = state.drawings.map((_,i)=>{ const c=document.querySelector(`.pitch canvas.draw-layer[data-i="${i}"]`); return c?c.toDataURL("image/png"):""; });
-    const sumRows = state.drills.map(d=>`
-      <div style="display:grid;grid-template-columns:3fr 3fr 6fr;border-top:1px solid #ddd">
-        <div style="padding:6px 8px;border-right:1px solid #eee">${esc(d.name)}</div>
-        <div style="padding:6px 8px;border-right:1px solid #eee">${esc(d.duration)}</div>
-        <div style="padding:6px 8px">${esc(d.purpose)}</div>
-      </div>`).join("");
-    const drillBlocks = state.drills.map((d,i)=>`
-      <div style="border:1px solid #ddd;border-radius:12px;padding:8px;margin:10px 0">
-        <div style="font:600 12px system-ui;margin-bottom:6px">${esc(d.name)}</div>
-        <div style="display:grid;grid-template-columns:7fr 5fr;gap:10px;position:relative">
-          <div>
-            <div style="font:600 11px system-ui;color:#555;margin:4px 0 2px">Setup</div>
-            <div style="min-height:38px;border:1px solid #ddd;border-radius:6px;padding:6px">${esc(d.setup)}</div>
-            <div style="font:600 11px system-ui;color:#555;margin:8px 0 2px">Exercise</div>
-            <div style="min-height:38px;border:1px solid #ddd;border-radius:6px;padding:6px">${esc(d.exercise)}</div>
-            <div style="font:600 11px system-ui;color:#555;margin:8px 0 2px">Progression</div>
-            <div style="min-height:38px;border:1px solid #ddd;border-radius:6px;padding:6px">${esc(d.progression)}</div>
-          </div>
-          <div>
-            <div style="position:relative;background:#E0F3E4;border:1px solid #aaa;border-radius:10px;overflow:hidden">
-              <svg viewBox="0 0 1000 650" style="width:100%;height:auto;display:block">
-                <rect x="10" y="10" width="980" height="630" fill="none" stroke="#AAAAAA" stroke-width="3"/>
-                <line x1="20" y1="40" x2="980" y2="40" stroke="#BBBBBB" stroke-width="2"/>
-                <rect x="160" y="300" width="680" height="260" fill="none" stroke="#AAAAAA" stroke-width="2"/>
-                <rect x="260" y="410" width="480" height="150" fill="none" stroke="#AAAAAA" stroke-width="2"/>
-                <circle cx="500" cy="360" r="6" fill="#AAAAAA"/>
-              </svg>
-              ${imgs[i] ? `<img src="${imgs[i]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain"/>` : ``}
-            </div>
-          </div>
-        </div>
-      </div>`).join("");
-
-    return `<!doctype html><html><head><meta charset="utf-8"/><title>Session Plan — ${esc(state.title)}</title>
-      <style>@page{size:A4 portrait;margin:10mm}body{font:12px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111}.muted{color:#777;font-size:10px}.box{border:1px solid #ddd;border-radius:10px}</style>
-    </head><body>
-      <div class="muted">Duplicate this document before editing your own sessions.</div>
-      <div style="display:grid;grid-template-columns:10fr 7fr;gap:8px;border-bottom:1px solid #ddd;padding-bottom:6px;margin-bottom:8px">
-        <div><b>Session Title:</b> ${esc(state.title)}</div>
-        <div><b>Age Group:</b> ${esc(state.ageGroup)}</div>
-      </div>
-      <div style="display:grid;grid-template-columns:30% 70%;gap:8px;border-bottom:1px solid #ddd;padding-bottom:6px;margin-bottom:8px">
-        <div><div><b>Players:</b> ${esc(state.players)}</div><div><b>Area needed:</b> ${esc(state.area)}</div></div>
-        <div><div><b>Objective:</b> ${esc(state.objective)}</div><div><b>Equipment:</b> ${esc(state.equipment)}</div></div>
-      </div>
-      <div class="box" style="background:#f7f7f7">
-        <div style="display:grid;grid-template-columns:3fr 3fr 6fr;border-bottom:1px solid #ddd;font-weight:600;color:#666;font-size:11px">
-          <div style="padding:6px 8px">Drill</div><div style="padding:6px 8px">Duration</div><div style="padding:6px 8px">Purpose / Notes</div>
-        </div>
-        ${sumRows}
-      </div>
-      <div style="margin-top:10px">${drillBlocks}</div>
-      <div style="margin-top:8px"><div style="font:600 11px system-ui;color:#666">Coach Notes / Reflection</div><div class="box" style="height:120px;margin-top:6px"></div></div>
-      <div style="text-align:right;color:#999;font-size:10px;margin-top:6px">Template by Alex Hammond-Cole | Notio (Web)</div>
-    </body></html>`;
-  }
-
-  // Boot
   renderAll();
 
   // Helpers
-  function esc(s){ return String(s ?? "").replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
-
-  // Export helper alias for readability (already defined above)
-  window.buildPrintableHTML = buildPrintableHTML;
-
+  function esc(s){ return String(s??"").replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
 })();
 </script>
 </body>
