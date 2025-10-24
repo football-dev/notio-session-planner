@@ -3,41 +3,46 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Notio — Session Planner</title>
+<title>Tacti.OS — Session Planner</title>
 <style>
   :root{--ink:#111;--muted:#666;--line:#d9d9d9;--box:#f7f7f7;--green:#E0F3E4}
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;background:#fff;color:var(--ink);font:14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
 
-  /* Top bars */
-  .toolbar{position:sticky;top:0;z-index:20;display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:#fff}
+  /* Top bar */
+  .toolbar{position:sticky;top:0;z-index:30;display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:#fff}
   .toolbar h1{font-size:16px;margin:0}
   .sp{flex:1}
-
-  /* Global draw toolbar */
-  .drawbar{position:sticky;top:52px;z-index:19;background:#fff;border-bottom:1px solid var(--line);padding:8px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-  .section{padding:4px 8px;border:1px solid var(--line);background:var(--box);border-radius:8px;font-size:12px;font-weight:600;color:#555;cursor:default;user-select:none}
-  .seg{display:flex;gap:8px;align-items:center}
-  .divider{width:1px;height:22px;background:var(--line);border-radius:1px}
   button{appearance:none;background:#fff;border:1px solid var(--line);padding:7px 10px;border-radius:10px;cursor:pointer}
-  button.small{padding:6px 8px;border-radius:8px;font-size:12px}
   button.primary{background:#111;color:#fff;border-color:#111}
+  button.small{padding:6px 8px;border-radius:8px;font-size:12px}
   button.active{outline:2px solid #111}
-  input[type=number]{width:64px;border:1px solid var(--line);border-radius:8px;padding:6px}
-  input[type=text]{border:1px solid var(--line);border-radius:8px;padding:6px}
+
+  /* Layout: left sidebar (vertical toolbar) + content */
+  .wrap{display:grid;grid-template-columns:220px 1fr;gap:0;max-width:1200px;margin:0 auto}
+  @media(max-width:900px){ .wrap{grid-template-columns:1fr} }
+
+  /* Sidebar */
+  .side{position:sticky;top:52px;align-self:start;height:calc(100vh - 52px);overflow:auto;border-right:1px solid var(--line);padding:12px;background:#fff;z-index:20}
+  .sec{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .chip{padding:4px 8px;border:1px solid var(--line);background:var(--box);border-radius:8px;font-size:12px;font-weight:600;color:#555;cursor:default;user-select:none}
+  .toolrow{display:flex;flex-wrap:wrap;gap:6px}
   .icon{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:4px}
   .icon.blue{background:#3b82f6}.icon.red{background:#ef4444}.icon.orange{background:#f59e0b}
   .icon.ball{background:radial-gradient(circle at 50% 50%, #fff 40%, #111 41%)}
-  .chip{font-size:12px;color:#555}
+  .bin{margin-top:8px;border:1px dashed #bbb;border-radius:10px;padding:10px;text-align:center;color:#555}
+  .bin.active{border-color:#111;background:#fafafa}
+  .side .status{font-size:12px;color:#555;margin-top:6px}
 
-  /* Page and cards */
-  .page{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:14px}
+  /* Content area */
+  .page{padding:16px;display:grid;gap:14px}
   .card{border:1px solid var(--line);border-radius:16px;padding:12px}
-  .title{font-weight:600;color:#444;margin:0 0 8px 0;font-size:13px}
+  .title{font-weight:600;color:#444;margin:0 0 8px 0;font-size:18px}
+  .mini-lab{font-weight:600;color:#555;font-size:14px;margin:8px 0 4px}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .row-30-70{grid-template-columns:30% 70%}
-  label .lab{display:block;color:#666;font-size:12px;margin-bottom:4px}
-  textarea{min-height:64px;resize:vertical;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff}
+  input[type=text]{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff}
+  textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;min-height:96px}
 
   /* Summary */
   .summary{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--box)}
@@ -49,9 +54,7 @@
   /* Drills */
   .drill{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:5mm}
   .drill .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-  .trash{display:inline-flex;align-items:center;gap:6px}
-  .trash button{padding:6px 8px}
-  .two-col{display:grid;grid-template-columns:56% 44%;gap:12px}
+  .two-col{display:grid;grid-template-columns:62% 38%;gap:16px} /* wider editor column */
 
   /* Pitch + drawing */
   .pitch{position:relative;background:var(--green);border:1px solid #aaa;border-radius:12px;aspect-ratio:13/10;width:100%;overflow:hidden;outline-offset:3px}
@@ -59,120 +62,120 @@
   .draw-layer,.grid-layer{position:absolute;inset:0}
   .grid-layer{pointer-events:none}
   .active-pitch{outline:3px solid #111}
+  .selbox{position:absolute;border:1px dashed #111;background:rgba(17,17,17,.04);pointer-events:none}
 
-  /* Selection visuals */
-  .selbox{position:absolute;border:1px dashed #111;pointer-events:none}
-
-  .mini-lab{font-weight:600;color:#555;font-size:12px;margin:8px 0 4px}
   .notes{border:1px solid var(--line);border-radius:10px;height:120px}
   .footer{color:#999;font-size:11px;text-align:right;margin-top:6px}
 
   @media print{
-    .toolbar,.drawbar{display:none}
+    .toolbar,.side{display:none}
+    .wrap{display:block}
     .page{padding:0}
-    textarea{border:none !important}
+    input,textarea{border:none !important}
     @page{size:A4 portrait;margin:10mm}
   }
 </style>
 </head>
 <body>
-
-  <!-- Top toolbar -->
+  <!-- Top -->
   <div class="toolbar">
-    <h1>Notio — Session Planner</h1>
+    <h1>Tacti.OS — Session Planner</h1>
     <div class="sp"></div>
     <button id="btnPrint" class="primary">Print / Export PDF</button>
   </div>
 
-  <!-- Global toolbar with clearer sections + drill add/remove -->
-  <div class="drawbar" id="drawbar">
-    <div class="seg">
-      <span class="section">Tools</span>
-      <button class="small" data-tool="select">Select</button>
-      <button class="small" data-tool="pen">Pen</button>
-      <button class="small" data-tool="eraser">Eraser</button>
-      <button class="small" data-tool="arrow">Arrow</button>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="seg">
-      <span class="section">Stamps</span>
-      <button class="small" data-tool="playerA"><span class="icon blue"></span>A</button>
-      <button class="small" data-tool="playerB"><span class="icon red"></span>B</button>
-      <button class="small" data-tool="cone"><span class="icon orange"></span>Cone</button>
-      <button class="small" data-tool="ball"><span class="icon ball"></span>Ball</button>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="seg">
-      <span class="section">Numbers</span>
-      <label class="chip"><input type="checkbox" id="toggleNumbers" style="vertical-align:-2px;margin-right:6px">Show #</label>
-      <label class="chip">Next # <input type="number" id="nextNumber" value="1" min="0"></label>
-      <label class="chip">Set # <input type="number" id="setNumber" value="0" min="0"> <button class="small" id="applyNumber">Apply</button></label>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="seg">
-      <span class="section">Actions</span>
-      <button class="small" data-act="undo">Undo</button>
-      <button class="small" data-act="redo">Redo</button>
-      <button class="small" data-act="clear">Clear</button>
-      <button class="small" data-act="grid">Grid</button>
-      <button class="small" data-act="sizePlus">Size +</button>
-      <button class="small" data-act="sizeMinus">Size −</button>
-      <button class="small" data-act="deleteSelected">Delete Selected</button>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="seg">
-      <span class="section">Drills</span>
-      <button class="small" id="btnAddDrill">+ Add Drill</button>
-      <button class="small" id="btnRemoveDrill">Remove Last</button>
-    </div>
-
-    <span class="sp"></span>
-    <span class="chip" id="activeChip">Editing: Drill 1</span>
-  </div>
-
-  <div class="page" id="app">
-
-    <!-- Header -->
-    <div class="card">
-      <div class="title">Session Header</div>
-      <div class="row">
-        <label><span class="lab">Session Title</span><input type="text" id="title"></label>
-        <label><span class="lab">Age Group</span><input type="text" id="ageGroup"></label>
+  <div class="wrap">
+    <!-- LEFT: Vertical toolbar -->
+    <aside class="side" id="sidebar">
+      <div class="sec">
+        <div class="chip">Tools</div>
+        <div class="toolrow">
+          <button class="small" data-tool="select" id="tSelect">Select</button>
+          <button class="small" data-tool="pen"    id="tPen">Pen</button>
+          <button class="small" data-tool="eraser" id="tEraser">Eraser</button>
+          <button class="small" data-tool="arrow"  id="tArrow">Arrow</button>
+        </div>
       </div>
-      <div class="row row-30-70" style="margin-top:8px">
-        <label><span class="lab">Players</span><input type="text" id="players"></label>
-        <label><span class="lab">Objective</span><input type="text" id="objective"></label>
-        <label><span class="lab">Area needed</span><input type="text" id="area"></label>
-        <label><span class="lab">Equipment</span><input type="text" id="equipment"></label>
+
+      <div class="sec">
+        <div class="chip">Stamps</div>
+        <div class="toolrow">
+          <button class="small" data-tool="playerA"><span class="icon blue"></span>A</button>
+          <button class="small" data-tool="playerB"><span class="icon red"></span>B</button>
+          <button class="small" data-tool="cone"><span class="icon orange"></span>Cone</button>
+          <button class="small" data-tool="ball"><span class="icon ball"></span>Ball</button>
+        </div>
       </div>
-    </div>
 
-    <!-- Overview -->
-    <div class="card">
-      <div class="title">Drill Overview (editable)</div>
-      <div class="summary" id="overview">
-        <div class="hdr"><div>Drill</div><div>Duration</div><div>Purpose / Notes</div></div>
-        <!-- rows injected -->
+      <div class="sec">
+        <div class="chip">Numbers</div>
+        <div class="toolrow" style="gap:8px">
+          <label class="small" style="display:flex;align-items:center;gap:6px;color:#555"><input type="checkbox" id="toggleNumbers"> Show #</label>
+          <label class="small" style="display:flex;align-items:center;gap:6px;color:#555">Next # <input type="number" id="nextNumber" value="1" min="0" style="width:68px"></label>
+          <label class="small" style="display:flex;align-items:center;gap:6px;color:#555">Set # <input type="number" id="setNumber" value="0" min="0" style="width:68px"> <button class="small" id="applyNumber">Apply</button></label>
+        </div>
       </div>
-    </div>
 
-    <!-- Drills -->
-    <div id="drills"></div>
+      <div class="sec">
+        <div class="chip">Actions</div>
+        <div class="toolrow">
+          <button class="small" data-act="undo">Undo</button>
+          <button class="small" data-act="redo">Redo</button>
+          <button class="small" data-act="clear">Clear</button>
+          <button class="small" data-act="grid">Grid</button>
+          <button class="small" data-act="sizePlus">Size +</button>
+          <button class="small" data-act="sizeMinus">Size −</button>
+          <button class="small" data-act="deleteSelected">Delete Selected</button>
+        </div>
+        <div class="bin" id="trashBin">🗑️ Drag here to delete</div>
+        <div class="status" id="activeChip">Editing: Drill 1</div>
+      </div>
 
-    <!-- Notes -->
-    <div class="card">
-      <div class="title">Coach Notes / Reflection</div>
-      <div class="notes"></div>
-      <div class="footer">Template by Alex Hammond-Cole | Notio (Web)</div>
-    </div>
+      <div class="sec">
+        <div class="chip">Drills</div>
+        <div class="toolrow">
+          <button class="small" id="btnAddDrill">+ Add Drill</button>
+          <button class="small" id="btnRemoveDrill">Remove Last</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT: Content -->
+    <main class="page" id="app">
+      <!-- Header -->
+      <div class="card">
+        <div class="title">Session Header</div>
+        <div class="row">
+          <label><span class="mini-lab">Session Title</span><input type="text" id="title"></label>
+          <label><span class="mini-lab">Age Group</span><input type="text" id="ageGroup"></label>
+        </div>
+        <div class="row row-30-70" style="margin-top:8px">
+          <label><span class="mini-lab">Players</span><input type="text" id="players"></label>
+          <label><span class="mini-lab">Objective</span><input type="text" id="objective"></label>
+          <label><span class="mini-lab">Area needed</span><input type="text" id="area"></label>
+          <label><span class="mini-lab">Equipment</span><input type="text" id="equipment"></label>
+        </div>
+      </div>
+
+      <!-- Overview -->
+      <div class="card">
+        <div class="title">Drill Overview (editable)</div>
+        <div class="summary" id="overview">
+          <div class="hdr"><div>Drill</div><div>Duration</div><div>Purpose / Notes</div></div>
+          <!-- rows injected -->
+        </div>
+      </div>
+
+      <!-- Drills -->
+      <div id="drills"></div>
+
+      <!-- Notes -->
+      <div class="card">
+        <div class="title">Coach Notes / Reflection</div>
+        <div class="notes"></div>
+        <div class="footer">Template by Alex Hammond-Cole | Tacti.OS</div>
+      </div>
+    </main>
   </div>
 
 <script>
@@ -191,7 +194,7 @@
   const state = {
     title:"", ageGroup:"", players:"", objective:"", area:"", equipment:"",
     drills: JSON.parse(JSON.stringify(defaultDrills)),
-    drawings: [],      // per-drill {actions:[], redo:[], grid:false, selection:Set<number>}
+    drawings: [],      // per-drill {actions:[], redo:[], grid:false, selection:number[]}
     active: 0,         // active drill index for drawing
     tool: 'select',
     showNumbers: false,
@@ -211,9 +214,9 @@
       const row = document.createElement("div");
       row.className = "r";
       row.innerHTML = `
-        <div><input type="text" value="${esc(d.name)}" data-i="${i}" data-k="name"></div>
-        <div><input type="text" value="${esc(d.duration)}" data-i="${i}" data-k="duration"></div>
-        <div><input type="text" value="${esc(d.purpose)}" data-i="${i}" data-k="purpose"></div>
+        <div><input type="text" value="${esc(d.name)}" data-i="${i}" data-k="name" style="width:100%"></div>
+        <div><input type="text" value="${esc(d.duration)}" data-i="${i}" data-k="duration" style="width:100%"></div>
+        <div><input type="text" value="${esc(d.purpose)}" data-i="${i}" data-k="purpose" style="width:100%"></div>
       `;
       overview.appendChild(row);
     });
@@ -227,17 +230,16 @@
     });
   }
 
-  // ---- Global toolbar ----
-  const drawbar = $("#drawbar");
+  // ---- Sidebar (global toolbar) ----
+  const sidebar = $("#sidebar"), bin = $("#trashBin");
   function setActiveTool(tool){
     state.tool = tool;
-    $$("button[data-tool]", drawbar).forEach(b=>b.classList.toggle("active", b.dataset.tool===tool));
+    $$("button[data-tool]", sidebar).forEach(b=>b.classList.toggle("active", b.dataset.tool===tool));
   }
   setActiveTool('select');
 
   $("#toggleNumbers").addEventListener("change", e=>{
     state.showNumbers = e.target.checked;
-    // re-render all canvases to show/hide numbers
     state.drills.forEach((_,i)=>renderCanvas(i));
   });
   $("#nextNumber").addEventListener("input", e=>{ state.nextNumber = +e.target.value || 0; });
@@ -251,7 +253,7 @@
     renderCanvas(state.active);
   });
 
-  drawbar.addEventListener("click", e=>{
+  sidebar.addEventListener("click", e=>{
     const btn = e.target.closest("button");
     if(!btn) return;
     const tool = btn.dataset.tool;
@@ -272,12 +274,7 @@
     } else if(act==="sizeMinus"){
       scaleSelection(1/1.15);
     } else if(act==="deleteSelected"){
-      if(D.selection.length){
-        // remove highest indices first
-        D.selection.sort((a,b)=>b-a).forEach(idx=>D.actions.splice(idx,1));
-        D.selection=[];
-        renderCanvas(state.active);
-      }
+      deleteSelection();
     }
   });
 
@@ -310,7 +307,7 @@
       card.innerHTML = `
         <div class="hdr">
           <div class="name">${esc(d.name) || `Drill ${i+1}`}</div>
-          <div class="trash"><button class="small" data-act="trash" data-i="${i}">🗑️</button></div>
+          <button class="small" title="Delete drill" data-act="trash" data-i="${i}">🗑️</button>
         </div>
         <div class="two-col">
           <div>
@@ -381,7 +378,7 @@
     if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
   }
 
-  // ---- Canvas drawing engine (global toolbar drives it) ----
+  // ---- Canvas drawing engine (with marquee + drag-to-bin) ----
   function setupCanvas(pitch, i){
     const layer = pitch.querySelector(".draw-layer");
     const gridL = pitch.querySelector(".grid-layer");
@@ -396,6 +393,7 @@
 
     let drawing=false, cur=null;
     let draggingSelection=false, dragStart=null;
+    let marquee=false, mStart=null, mRect=null; // marquee selection
 
     function pos(e){
       const r=layer.getBoundingClientRect();
@@ -405,11 +403,10 @@
     }
 
     function hitStampAt(x,y, D){
-      // return topmost index of a stamp under point
       for(let k=D.actions.length-1;k>=0;k--){
         const a = D.actions[k];
         if(a.type==='stamp'){
-          const rad = (a.sz||1)*10 + 4; // loose hit radius
+          const rad = (a.sz||1)*10 + 4;
           const dx = x-a.x, dy=y-a.y;
           if(dx*dx+dy*dy <= rad*rad) return k;
         }
@@ -428,26 +425,23 @@
         const hit = hitStampAt(p.x,p.y,D);
         if(hit>=0){
           if(e.shiftKey){
-            // toggle membership
             const j = D.selection.indexOf(hit);
             if(j>=0) D.selection.splice(j,1);
             else D.selection.push(hit);
           } else {
-            // select single
-            if(D.selection.length!==1 || D.selection[0]!==hit){
-              D.selection = [hit];
-            }
+            if(D.selection.length!==1 || D.selection[0]!==hit) D.selection = [hit];
           }
           draggingSelection = true; dragStart = p;
         } else {
-          // click empty space: clear selection
+          // start marquee
           D.selection = [];
+          marquee = true; mStart = p; mRect = {x: p.x, y: p.y, w: 0, h: 0};
+          drawSelBox(selBox, mRect, false);
         }
         renderCanvas(i, selBox);
         return;
       }
 
-      // drawing actions break redo chain
       D.redo = [];
       if(tool==='pen'){
         drawing=true; cur={type:'path', color:'#111', w:3, pts:[p]}; D.actions.push(cur);
@@ -462,7 +456,6 @@
           state.nextNumber += 1; $("#nextNumber").value = state.nextNumber;
         }
         D.actions.push(a);
-        // select the placed stamp for easy move
         D.selection = [D.actions.length-1];
       }
       renderCanvas(i, selBox);
@@ -473,17 +466,25 @@
       const D = state.drawings[i];
       const p = pos(e);
 
-      if(tool==='select'){
-        if(draggingSelection && D.selection.length){
-          const dx = p.x - dragStart.x;
-          const dy = p.y - dragStart.y;
-          dragStart = p;
-          D.selection.forEach(idx=>{
-            const a = D.actions[idx];
-            if(a && a.type==='stamp'){ a.x += dx; a.y += dy; }
-          });
-          renderCanvas(i, selBox);
-        }
+      // marquee
+      if(tool==='select' && marquee){
+        mRect = normRect(mStart, p);
+        drawSelBox(selBox, mRect, false);
+        return;
+      }
+
+      // dragging selection
+      if(tool==='select' && draggingSelection && D.selection.length){
+        const dx = p.x - dragStart.x;
+        const dy = p.y - dragStart.y;
+        dragStart = p;
+        D.selection.forEach(idx=>{
+          const a = D.actions[idx];
+          if(a && a.type==='stamp'){ a.x += dx; a.y += dy; }
+        });
+        renderCanvas(i, selBox);
+        // bin hover feedback
+        if(isOverBin(e)){ bin.classList.add('active'); } else { bin.classList.remove('active'); }
         return;
       }
 
@@ -493,7 +494,35 @@
       renderCanvas(i, selBox);
     }
 
-    function up(){ drawing=false; cur=null; draggingSelection=false; }
+    function up(e){
+      const tool = state.tool;
+      const D = state.drawings[i];
+
+      // finish marquee
+      if(tool==='select' && marquee){
+        marquee=false; selBox.hidden=true;
+        const r = mRect;
+        D.selection = [];
+        D.actions.forEach((a,idx)=>{
+          if(a.type!=='stamp') return;
+          if(a.x>=r.x && a.x<=r.x+r.w && a.y>=r.y && a.y<=r.y+r.h){ D.selection.push(idx); }
+        });
+        renderCanvas(i);
+        return;
+      }
+
+      // finish drag-to-bin
+      if(tool==='select' && draggingSelection){
+        if(isOverBin(e) && D.selection.length){
+          D.selection.sort((a,b)=>b-a).forEach(idx=>D.actions.splice(idx,1));
+          D.selection=[];
+          bin.classList.remove('active');
+          renderCanvas(i);
+        }
+      }
+
+      drawing=false; cur=null; draggingSelection=false;
+    }
 
     layer.addEventListener("mousedown", down);
     layer.addEventListener("mousemove", move);
@@ -503,31 +532,45 @@
     layer.addEventListener("touchend", up);
   }
 
+  function normRect(a,b){
+    const x = Math.min(a.x,b.x), y=Math.min(a.y,b.y);
+    return {x, y, w: Math.abs(b.x-a.x), h: Math.abs(b.y-a.y)};
+  }
+  function drawSelBox(el, r){
+    el.hidden=false; el.style.left=r.x+'px'; el.style.top=r.y+'px'; el.style.width=r.w+'px'; el.style.height=r.h+'px';
+  }
+  function isOverBin(e){
+    const binEl = $("#trashBin"); const rect = binEl.getBoundingClientRect();
+    const x = (e.touches?e.touches[0].clientX:e.clientX), y = (e.touches?e.touches[0].clientY:e.clientY);
+    return x>=rect.left && x<=rect.right && y>=rect.top && y<=rect.bottom;
+  }
+
   function scaleSelection(f){
     const D = state.drawings[state.active];
     if(!D.selection.length) return;
-    // scale around centroid
     let cx=0, cy=0, n=0;
-    D.selection.forEach(idx=>{
-      const a=D.actions[idx]; if(a && a.type==='stamp'){ cx+=a.x; cy+=a.y; n++; }
-    });
-    if(!n) return;
-    cx/=n; cy/=n;
+    D.selection.forEach(idx=>{ const a=D.actions[idx]; if(a && a.type==='stamp'){ cx+=a.x; cy+=a.y; n++; } });
+    if(!n) return; cx/=n; cy/=n;
     D.selection.forEach(idx=>{
       const a=D.actions[idx]; if(a && a.type==='stamp'){
-        a.x = cx + (a.x-cx)*f;
-        a.y = cy + (a.y-cy)*f;
-        a.sz = Math.max(0.4, Math.min(3, (a.sz||1)*f));
+        a.x = cx + (a.x-cx)*f; a.y = cy + (a.y-cy)*f; a.sz = Math.max(0.4, Math.min(3, (a.sz||1)*f));
       }
     });
     renderCanvas(state.active);
   }
+  function deleteSelection(){
+    const D = state.drawings[state.active];
+    if(!D.selection.length) return;
+    D.selection.sort((a,b)=>b-a).forEach(idx=>D.actions.splice(idx,1));
+    D.selection=[]; renderCanvas(state.active);
+  }
 
-  function renderCanvas(i, selBoxEl){
+  function renderCanvas(i){
     const pitch = $(`.pitch[data-i="${i}"]`);
     if(!pitch) return;
     const layer = pitch.querySelector(".draw-layer");
     const grid  = pitch.querySelector(".grid-layer");
+    const selBox= pitch.querySelector(".selbox");
     const ctx = layer.getContext("2d");
     const gtx = grid.getContext("2d");
     const D = state.drawings[i];
@@ -553,6 +596,14 @@
         const ang=Math.atan2(a.y2-a.y1,a.x2-a.x1), head=12;
         ctx.beginPath();
         ctx.moveTo(a.x2,a.y2);
+        ctx.lineTo(a.x2-head*Math.cos(ang-Math.PI/6), a.y2-head*Math.sin(ang-MI_PI/6));
+      } else if(a.type==='arrow'){
+        /* ensure arrowheads */
+        ctx.strokeStyle=a.color; ctx.lineWidth=a.w;
+        ctx.beginPath(); ctx.moveTo(a.x1,a.y1); ctx.lineTo(a.x2,a.y2); ctx.stroke();
+        const ang=Math.atan2(a.y2-a.y1,a.x2-a.x1), head=12;
+        ctx.beginPath();
+        ctx.moveTo(a.x2,a.y2);
         ctx.lineTo(a.x2-head*Math.cos(ang-Math.PI/6), a.y2-head*Math.sin(ang-Math.PI/6));
         ctx.moveTo(a.x2,a.y2);
         ctx.lineTo(a.x2-head*Math.cos(ang+Math.PI/6), a.y2-head*Math.sin(ang+Math.PI/6));
@@ -573,16 +624,13 @@
           ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(a.x,a.y,9*s,0,Math.PI*2); ctx.fill();
           ctx.strokeStyle='#111'; ctx.lineWidth=2*s; ctx.beginPath(); ctx.arc(a.x,a.y,9*s,0,Math.PI*2); ctx.stroke();
         }
-        // selection ring
         if(D.selection.includes(idx)){
-          ctx.strokeStyle='#111'; ctx.lineWidth=1;
-          ctx.setLineDash([4,3]);
-          ctx.beginPath(); ctx.arc(a.x,a.y, (a.kind==='cone'?12:12)*s, 0, Math.PI*2); ctx.stroke();
-          ctx.setLineDash([]);
+          ctx.strokeStyle='#111'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+          ctx.beginPath(); ctx.arc(a.x,a.y, (a.kind==='cone'?12:12)*s, 0, Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
         }
       }
     });
-    if(selBoxEl){ selBoxEl.hidden = true; }
+    if(selBox) selBox.hidden = true;
   }
 
   // ---- Print / Export ----
