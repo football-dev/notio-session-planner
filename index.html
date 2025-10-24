@@ -23,6 +23,8 @@
   button.small{padding:6px 8px;border-radius:8px;font-size:12px}
   button.primary{background:#111;color:#fff;border-color:#111}
   button.active{outline:2px solid #111}
+  input[type=number]{width:64px;border:1px solid var(--line);border-radius:8px;padding:6px}
+  input[type=text]{border:1px solid var(--line);border-radius:8px;padding:6px}
   .icon{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:4px}
   .icon.blue{background:#3b82f6}.icon.red{background:#ef4444}.icon.orange{background:#f59e0b}
   .icon.ball{background:radial-gradient(circle at 50% 50%, #fff 40%, #111 41%)}
@@ -35,8 +37,7 @@
   .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .row-30-70{grid-template-columns:30% 70%}
   label .lab{display:block;color:#666;font-size:12px;margin-bottom:4px}
-  input[type=text], textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff}
-  textarea{min-height:64px;resize:vertical}
+  textarea{min-height:64px;resize:vertical;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff}
 
   /* Summary */
   .summary{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--box)}
@@ -46,16 +47,21 @@
   .summary .hdr>div:first-child, .summary .r>div:first-child{border-left:0}
 
   /* Drills */
-  .drill{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:5mm} /* 5mm spacing */
+  .drill{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:5mm}
   .drill .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .trash{display:inline-flex;align-items:center;gap:6px}
+  .trash button{padding:6px 8px}
   .two-col{display:grid;grid-template-columns:56% 44%;gap:12px}
 
   /* Pitch + drawing */
-  .pitch{position:relative;background:var(--green);border:1px solid #aaa;border-radius:12px;aspect-ratio:13/10;width:100%;overflow:hidden}
+  .pitch{position:relative;background:var(--green);border:1px solid #aaa;border-radius:12px;aspect-ratio:13/10;width:100%;overflow:hidden;outline-offset:3px}
   .pitch svg{width:100%;height:100%;display:block}
   .draw-layer,.grid-layer{position:absolute;inset:0}
   .grid-layer{pointer-events:none}
-  .active-pitch{outline:3px solid #111; outline-offset:3px}
+  .active-pitch{outline:3px solid #111}
+
+  /* Selection visuals */
+  .selbox{position:absolute;border:1px dashed #111;pointer-events:none}
 
   .mini-lab{font-weight:600;color:#555;font-size:12px;margin:8px 0 4px}
   .notes{border:1px solid var(--line);border-radius:10px;height:120px}
@@ -64,7 +70,7 @@
   @media print{
     .toolbar,.drawbar{display:none}
     .page{padding:0}
-    input,textarea{border:none !important}
+    textarea{border:none !important}
     @page{size:A4 portrait;margin:10mm}
   }
 </style>
@@ -82,6 +88,7 @@
   <div class="drawbar" id="drawbar">
     <div class="seg">
       <span class="section">Tools</span>
+      <button class="small" data-tool="select">Select</button>
       <button class="small" data-tool="pen">Pen</button>
       <button class="small" data-tool="eraser">Eraser</button>
       <button class="small" data-tool="arrow">Arrow</button>
@@ -100,11 +107,23 @@
     <div class="divider"></div>
 
     <div class="seg">
+      <span class="section">Numbers</span>
+      <label class="chip"><input type="checkbox" id="toggleNumbers" style="vertical-align:-2px;margin-right:6px">Show #</label>
+      <label class="chip">Next # <input type="number" id="nextNumber" value="1" min="0"></label>
+      <label class="chip">Set # <input type="number" id="setNumber" value="0" min="0"> <button class="small" id="applyNumber">Apply</button></label>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="seg">
       <span class="section">Actions</span>
       <button class="small" data-act="undo">Undo</button>
       <button class="small" data-act="redo">Redo</button>
       <button class="small" data-act="clear">Clear</button>
       <button class="small" data-act="grid">Grid</button>
+      <button class="small" data-act="sizePlus">Size +</button>
+      <button class="small" data-act="sizeMinus">Size −</button>
+      <button class="small" data-act="deleteSelected">Delete Selected</button>
     </div>
 
     <div class="divider"></div>
@@ -172,11 +191,13 @@
   const state = {
     title:"", ageGroup:"", players:"", objective:"", area:"", equipment:"",
     drills: JSON.parse(JSON.stringify(defaultDrills)),
-    drawings: [],      // per-drill {actions:[], redo:[], grid:false}
+    drawings: [],      // per-drill {actions:[], redo:[], grid:false, selection:Set<number>}
     active: 0,         // active drill index for drawing
-    tool: 'pen'
+    tool: 'select',
+    showNumbers: false,
+    nextNumber: 1
   };
-  state.drawings = state.drills.map(()=>({actions:[],redo:[],grid:false}));
+  state.drawings = state.drills.map(()=>({actions:[],redo:[],grid:false, selection:[]}));
 
   // ---- UI: header + overview ----
   ["title","ageGroup","players","objective","area","equipment"].forEach(id=>{
@@ -212,7 +233,23 @@
     state.tool = tool;
     $$("button[data-tool]", drawbar).forEach(b=>b.classList.toggle("active", b.dataset.tool===tool));
   }
-  setActiveTool('pen');
+  setActiveTool('select');
+
+  $("#toggleNumbers").addEventListener("change", e=>{
+    state.showNumbers = e.target.checked;
+    // re-render all canvases to show/hide numbers
+    state.drills.forEach((_,i)=>renderCanvas(i));
+  });
+  $("#nextNumber").addEventListener("input", e=>{ state.nextNumber = +e.target.value || 0; });
+  $("#applyNumber").addEventListener("click", ()=>{
+    const n = +$("#setNumber").value || 0;
+    const D = state.drawings[state.active];
+    D.selection.forEach(idx=>{
+      const a = D.actions[idx];
+      if(a && a.type==='stamp' && (a.kind==='playerA' || a.kind==='playerB')) a.num = n;
+    });
+    renderCanvas(state.active);
+  });
 
   drawbar.addEventListener("click", e=>{
     const btn = e.target.closest("button");
@@ -221,23 +258,33 @@
     const act  = btn.dataset.act;
     if(tool){ setActiveTool(tool); return; }
 
-    // actions
     const D = state.drawings[state.active];
     if(act==="undo"){
-      if(D.actions.length){ D.redo.push(D.actions.pop()); renderCanvas(state.active); }
+      if(D.actions.length){ D.redo.push(D.actions.pop()); D.selection=[]; renderCanvas(state.active); }
     } else if(act==="redo"){
-      if(D.redo.length){ D.actions.push(D.redo.pop()); renderCanvas(state.active); }
+      if(D.redo.length){ D.actions.push(D.redo.pop()); D.selection=[]; renderCanvas(state.active); }
     } else if(act==="clear"){
-      D.actions = []; D.redo = []; renderCanvas(state.active);
+      D.actions = []; D.redo = []; D.selection=[]; renderCanvas(state.active);
     } else if(act==="grid"){
       D.grid = !D.grid; renderCanvas(state.active);
+    } else if(act==="sizePlus"){
+      scaleSelection(1.15);
+    } else if(act==="sizeMinus"){
+      scaleSelection(1/1.15);
+    } else if(act==="deleteSelected"){
+      if(D.selection.length){
+        // remove highest indices first
+        D.selection.sort((a,b)=>b-a).forEach(idx=>D.actions.splice(idx,1));
+        D.selection=[];
+        renderCanvas(state.active);
+      }
     }
   });
 
   // drill add/remove (global)
   $("#btnAddDrill").addEventListener("click", ()=>{
     state.drills.push({name:"New Drill", duration:"", purpose:"", setup:"", exercise:"", progression:""});
-    state.drawings.push({actions:[], redo:[], grid:false});
+    state.drawings.push({actions:[], redo:[], grid:false, selection:[]});
     state.active = state.drills.length - 1;
     renderAll();
     scrollToDrill(state.active);
@@ -261,7 +308,10 @@
       card.className = "card drill";
       card.dataset.i = i;
       card.innerHTML = `
-        <div class="hdr"><div class="name">${esc(d.name) || `Drill ${i+1}`}</div></div>
+        <div class="hdr">
+          <div class="name">${esc(d.name) || `Drill ${i+1}`}</div>
+          <div class="trash"><button class="small" data-act="trash" data-i="${i}">🗑️</button></div>
+        </div>
         <div class="two-col">
           <div>
             <div class="mini-lab">Setup</div>
@@ -282,11 +332,21 @@
               </svg>
               <canvas class="draw-layer"></canvas>
               <canvas class="grid-layer"></canvas>
+              <div class="selbox" hidden></div>
             </div>
           </div>
         </div>
       `;
       drillsRoot.appendChild(card);
+
+      // per-drill trash
+      card.querySelector('[data-act="trash"]').addEventListener("click", ()=>{
+        const idx = i;
+        state.drills.splice(idx,1);
+        state.drawings.splice(idx,1);
+        state.active = Math.max(0, Math.min(state.active, state.drills.length-1));
+        renderAll();
+      });
 
       // text bindings
       $$("textarea", card).forEach(t=>{
@@ -325,6 +385,7 @@
   function setupCanvas(pitch, i){
     const layer = pitch.querySelector(".draw-layer");
     const gridL = pitch.querySelector(".grid-layer");
+    const selBox = pitch.querySelector(".selbox");
     function resize(){
       const r = pitch.getBoundingClientRect();
       [layer, gridL].forEach(c=>{ c.width=r.width; c.height=r.height; });
@@ -334,6 +395,7 @@
     resize();
 
     let drawing=false, cur=null;
+    let draggingSelection=false, dragStart=null;
 
     function pos(e){
       const r=layer.getBoundingClientRect();
@@ -342,13 +404,51 @@
       return {x,y};
     }
 
+    function hitStampAt(x,y, D){
+      // return topmost index of a stamp under point
+      for(let k=D.actions.length-1;k>=0;k--){
+        const a = D.actions[k];
+        if(a.type==='stamp'){
+          const rad = (a.sz||1)*10 + 4; // loose hit radius
+          const dx = x-a.x, dy=y-a.y;
+          if(dx*dx+dy*dy <= rad*rad) return k;
+        }
+      }
+      return -1;
+    }
+
     function down(e){
       e.preventDefault();
-      setActivePitch(i); // select this canvas
+      setActivePitch(i);
       const tool = state.tool;
       const D = state.drawings[i];
-      D.redo = []; // break redo chain on new action
       const p = pos(e);
+
+      if(tool==='select'){
+        const hit = hitStampAt(p.x,p.y,D);
+        if(hit>=0){
+          if(e.shiftKey){
+            // toggle membership
+            const j = D.selection.indexOf(hit);
+            if(j>=0) D.selection.splice(j,1);
+            else D.selection.push(hit);
+          } else {
+            // select single
+            if(D.selection.length!==1 || D.selection[0]!==hit){
+              D.selection = [hit];
+            }
+          }
+          draggingSelection = true; dragStart = p;
+        } else {
+          // click empty space: clear selection
+          D.selection = [];
+        }
+        renderCanvas(i, selBox);
+        return;
+      }
+
+      // drawing actions break redo chain
+      D.redo = [];
       if(tool==='pen'){
         drawing=true; cur={type:'path', color:'#111', w:3, pts:[p]}; D.actions.push(cur);
       } else if(tool==='eraser'){
@@ -356,18 +456,44 @@
       } else if(tool==='arrow'){
         drawing=true; cur={type:'arrow', color:'#111', w:3, x1:p.x, y1:p.y, x2:p.x, y2:p.y}; D.actions.push(cur);
       } else { // stamps
-        D.actions.push({type:'stamp', kind:tool, x:p.x, y:p.y});
+        const a = {type:'stamp', kind:tool, x:p.x, y:p.y, sz:1};
+        if(tool==='playerA' || tool==='playerB'){
+          a.num = state.nextNumber;
+          state.nextNumber += 1; $("#nextNumber").value = state.nextNumber;
+        }
+        D.actions.push(a);
+        // select the placed stamp for easy move
+        D.selection = [D.actions.length-1];
       }
-      renderCanvas(i);
+      renderCanvas(i, selBox);
     }
+
     function move(e){
-      if(!drawing) return;
+      const tool = state.tool;
+      const D = state.drawings[i];
       const p = pos(e);
+
+      if(tool==='select'){
+        if(draggingSelection && D.selection.length){
+          const dx = p.x - dragStart.x;
+          const dy = p.y - dragStart.y;
+          dragStart = p;
+          D.selection.forEach(idx=>{
+            const a = D.actions[idx];
+            if(a && a.type==='stamp'){ a.x += dx; a.y += dy; }
+          });
+          renderCanvas(i, selBox);
+        }
+        return;
+      }
+
+      if(!drawing) return;
       if(cur.type==='path'){ cur.pts.push(p); }
       else if(cur.type==='arrow'){ cur.x2=p.x; cur.y2=p.y; }
-      renderCanvas(i);
+      renderCanvas(i, selBox);
     }
-    function up(){ drawing=false; cur=null; }
+
+    function up(){ drawing=false; cur=null; draggingSelection=false; }
 
     layer.addEventListener("mousedown", down);
     layer.addEventListener("mousemove", move);
@@ -377,7 +503,27 @@
     layer.addEventListener("touchend", up);
   }
 
-  function renderCanvas(i){
+  function scaleSelection(f){
+    const D = state.drawings[state.active];
+    if(!D.selection.length) return;
+    // scale around centroid
+    let cx=0, cy=0, n=0;
+    D.selection.forEach(idx=>{
+      const a=D.actions[idx]; if(a && a.type==='stamp'){ cx+=a.x; cy+=a.y; n++; }
+    });
+    if(!n) return;
+    cx/=n; cy/=n;
+    D.selection.forEach(idx=>{
+      const a=D.actions[idx]; if(a && a.type==='stamp'){
+        a.x = cx + (a.x-cx)*f;
+        a.y = cy + (a.y-cy)*f;
+        a.sz = Math.max(0.4, Math.min(3, (a.sz||1)*f));
+      }
+    });
+    renderCanvas(state.active);
+  }
+
+  function renderCanvas(i, selBoxEl){
     const pitch = $(`.pitch[data-i="${i}"]`);
     if(!pitch) return;
     const layer = pitch.querySelector(".draw-layer");
@@ -386,7 +532,7 @@
     const gtx = grid.getContext("2d");
     const D = state.drawings[i];
 
-    // background grid
+    // grid
     gtx.clearRect(0,0,grid.width,grid.height);
     if(D.grid){
       gtx.strokeStyle='#d0e8d4'; gtx.lineWidth=1;
@@ -395,9 +541,9 @@
       for(let y=0;y<=grid.height;y+=step){ gtx.beginPath(); gtx.moveTo(0,y); gtx.lineTo(grid.width,y); gtx.stroke(); }
     }
 
-    // draw actions
+    // draw
     ctx.clearRect(0,0,layer.width,layer.height);
-    for(const a of D.actions){
+    D.actions.forEach((a,idx)=>{
       if(a.type==='path'){
         ctx.strokeStyle=a.color; ctx.lineWidth=a.w; ctx.lineCap='round'; ctx.lineJoin='round';
         ctx.beginPath(); a.pts.forEach((p,j)=> j?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.stroke();
@@ -412,18 +558,31 @@
         ctx.lineTo(a.x2-head*Math.cos(ang+Math.PI/6), a.y2-head*Math.sin(ang+Math.PI/6));
         ctx.stroke();
       } else if(a.type==='stamp'){
+        const s = a.sz||1;
         if(a.kind==='playerA'||a.kind==='playerB'){
           ctx.fillStyle=a.kind==='playerA'?'#3b82f6':'#ef4444';
-          ctx.beginPath(); ctx.arc(a.x,a.y,10,0,Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.arc(a.x,a.y,10*s,0,Math.PI*2); ctx.fill();
+          if(state.showNumbers && (a.num!=null)){
+            ctx.fillStyle='#fff'; ctx.font = `${10*s}px system-ui, sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText(String(a.num), a.x, a.y);
+          }
         } else if(a.kind==='cone'){
           ctx.fillStyle='#f59e0b'; ctx.beginPath();
-          ctx.moveTo(a.x,a.y-10); ctx.lineTo(a.x-9,a.y+8); ctx.lineTo(a.x+9,a.y+8); ctx.closePath(); ctx.fill();
+          ctx.moveTo(a.x, a.y-10*s); ctx.lineTo(a.x-9*s, a.y+8*s); ctx.lineTo(a.x+9*s, a.y+8*s); ctx.closePath(); ctx.fill();
         } else if(a.kind==='ball'){
-          ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(a.x,a.y,9,0,Math.PI*2); ctx.fill();
-          ctx.strokeStyle='#111'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(a.x,a.y,9,0,Math.PI*2); ctx.stroke();
+          ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(a.x,a.y,9*s,0,Math.PI*2); ctx.fill();
+          ctx.strokeStyle='#111'; ctx.lineWidth=2*s; ctx.beginPath(); ctx.arc(a.x,a.y,9*s,0,Math.PI*2); ctx.stroke();
+        }
+        // selection ring
+        if(D.selection.includes(idx)){
+          ctx.strokeStyle='#111'; ctx.lineWidth=1;
+          ctx.setLineDash([4,3]);
+          ctx.beginPath(); ctx.arc(a.x,a.y, (a.kind==='cone'?12:12)*s, 0, Math.PI*2); ctx.stroke();
+          ctx.setLineDash([]);
         }
       }
-    }
+    });
+    if(selBoxEl){ selBoxEl.hidden = true; }
   }
 
   // ---- Print / Export ----
