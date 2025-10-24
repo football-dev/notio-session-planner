@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notio — Session Planner</title>
+<style>
+  :root{--ink:#111;--muted:#666;--line:#d9d9d9;--box:#f7f7f7;--green:#E0F3E4}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#fff;color:var(--ink);font:14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .toolbar{position:sticky;top:0;z-index:10;display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:#fff}
+  .toolbar h1{font-size:16px;margin:0}
+  .toolbar .sp{flex:1}
+  button{appearance:none;background:#fff;border:1px solid var(--line);padding:8px 12px;border-radius:10px;cursor:pointer}
+  button.primary{background:#111;color:#fff;border-color:#111}
+  .page{display:grid;grid-template-columns:1fr;gap:16px;padding:16px;max-width:1200px;margin:0 auto}
+  @media(min-width:1024px){ .page{grid-template-columns:1fr 1fr} }
+  .card{border:1px solid var(--line);border-radius:16px;padding:12px}
+  .title{font-weight:600;color:#444;margin:0 0 8px 0;font-size:13px}
+  label .lab{display:block;color:#666;font-size:12px;margin-bottom:4px}
+  input[type=text], textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff}
+  textarea{min-height:64px;resize:vertical}
+  .summary{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--box)}
+  .summary .hdr, .summary .r{display:grid;grid-template-columns:20% 20% 60%}
+  .summary .hdr{font-size:12px;font-weight:600;color:#666;border-bottom:1px solid var(--line)}
+  .summary .hdr > div, .summary .r > div{padding:6px 8px;border-left:1px solid var(--line)}
+  .summary .hdr > div:first-child, .summary .r > div:first-child{border-left:0}
+  .drill{border:1px solid var(--line);border-radius:12px;padding:10px;margin:10px 0}
+  .two-col{display:grid;grid-template-columns:54% 46%;gap:10px}
+  .mini-lab{font-weight:600;color:#555;font-size:12px;margin:8px 0 4px}
+  .pitch{position:relative;background:var(--green);border:1px solid #aaa;border-radius:12px;aspect-ratio:13/10;width:100%;overflow:hidden}
+  .pitch svg{width:100%;height:100%}
+  .notes{border:1px solid var(--line);border-radius:10px;height:120px}
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <h1>Notio — Session Planner</h1>
+    <div class="sp"></div>
+  </div>
+
+  <div class="page">
+    <div class="card">
+      <div class="title">Session Header</div>
+      <label><span class="lab">Session Title</span><input></label>
+      <label><span class="lab">Age Group</span><input></label>
+      <label><span class="lab">Players</span><input></label>
+      <label><span class="lab">Objective</span><input></label>
+      <label><span class="lab">Area Needed</span><input></label>
+      <label><span class="lab">Equipment</span><input></label>
+    </div>
+
+    <div class="card">
+      <div class="title">Drill Overview</div>
+      <div class="summary">
+        <div class="hdr"><div>Drill</div><div>Duration</div><div>Purpose</div></div>
+        <div class="r"><div>Passing</div><div>~10</div><div>Warm up & intro</div></div>
+        <div class="r"><div>Positioning Game</div><div>~10–15</div><div>Possession</div></div>
+        <div class="r"><div>Game Training</div><div>~20–25</div><div>Match situation</div></div>
+        <div class="r"><div>Training Game</div><div>~20–25</div><div>Game</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title">Coach Notes / Reflection</div>
+      <div class="notes"></div>
+    </div>
+  </div>
+</body>
+</html>
