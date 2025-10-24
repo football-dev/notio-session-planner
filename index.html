@@ -15,16 +15,18 @@
   .sp{flex:1}
 
   /* Global draw toolbar */
-  .drawbar{position:sticky;top:52px;z-index:19;background:#fff;border-bottom:1px solid var(--line);padding:8px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-  .badge{display:inline-block;padding:4px 8px;border:1px solid var(--line);border-radius:8px;font-size:12px;color:#555}
+  .drawbar{position:sticky;top:52px;z-index:19;background:#fff;border-bottom:1px solid var(--line);padding:8px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .section{padding:4px 8px;border:1px solid var(--line);background:var(--box);border-radius:8px;font-size:12px;font-weight:600;color:#555;cursor:default;user-select:none}
+  .seg{display:flex;gap:8px;align-items:center}
+  .divider{width:1px;height:22px;background:var(--line);border-radius:1px}
   button{appearance:none;background:#fff;border:1px solid var(--line);padding:7px 10px;border-radius:10px;cursor:pointer}
   button.small{padding:6px 8px;border-radius:8px;font-size:12px}
   button.primary{background:#111;color:#fff;border-color:#111}
   button.active{outline:2px solid #111}
-  .chip{font-size:12px;color:#555}
   .icon{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:4px}
   .icon.blue{background:#3b82f6}.icon.red{background:#ef4444}.icon.orange{background:#f59e0b}
   .icon.ball{background:radial-gradient(circle at 50% 50%, #fff 40%, #111 41%)}
+  .chip{font-size:12px;color:#555}
 
   /* Page and cards */
   .page{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:14px}
@@ -44,7 +46,7 @@
   .summary .hdr>div:first-child, .summary .r>div:first-child{border-left:0}
 
   /* Drills */
-  .drill{border:1px solid var(--line);border-radius:12px;padding:12px}
+  .drill{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:5mm} /* 5mm spacing */
   .drill .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
   .two-col{display:grid;grid-template-columns:56% 44%;gap:12px}
 
@@ -76,24 +78,42 @@
     <button id="btnPrint" class="primary">Print / Export PDF</button>
   </div>
 
-  <!-- Global drawing toolbar (one tool for ALL pitches) -->
+  <!-- Global toolbar with clearer sections + drill add/remove -->
   <div class="drawbar" id="drawbar">
-    <span class="badge">Tools</span>
-    <button class="small" data-tool="pen">Pen</button>
-    <button class="small" data-tool="eraser">Eraser</button>
-    <button class="small" data-tool="arrow">Arrow</button>
+    <div class="seg">
+      <span class="section">Tools</span>
+      <button class="small" data-tool="pen">Pen</button>
+      <button class="small" data-tool="eraser">Eraser</button>
+      <button class="small" data-tool="arrow">Arrow</button>
+    </div>
 
-    <span class="badge">Stamps</span>
-    <button class="small" data-tool="playerA"><span class="icon blue"></span>A</button>
-    <button class="small" data-tool="playerB"><span class="icon red"></span>B</button>
-    <button class="small" data-tool="cone"><span class="icon orange"></span>Cone</button>
-    <button class="small" data-tool="ball"><span class="icon ball"></span>Ball</button>
+    <div class="divider"></div>
 
-    <span class="badge">Actions</span>
-    <button class="small" data-act="undo">Undo</button>
-    <button class="small" data-act="redo">Redo</button>
-    <button class="small" data-act="clear">Clear</button>
-    <button class="small" data-act="grid">Grid</button>
+    <div class="seg">
+      <span class="section">Stamps</span>
+      <button class="small" data-tool="playerA"><span class="icon blue"></span>A</button>
+      <button class="small" data-tool="playerB"><span class="icon red"></span>B</button>
+      <button class="small" data-tool="cone"><span class="icon orange"></span>Cone</button>
+      <button class="small" data-tool="ball"><span class="icon ball"></span>Ball</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="seg">
+      <span class="section">Actions</span>
+      <button class="small" data-act="undo">Undo</button>
+      <button class="small" data-act="redo">Redo</button>
+      <button class="small" data-act="clear">Clear</button>
+      <button class="small" data-act="grid">Grid</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="seg">
+      <span class="section">Drills</span>
+      <button class="small" id="btnAddDrill">+ Add Drill</button>
+      <button class="small" id="btnRemoveDrill">Remove Last</button>
+    </div>
 
     <span class="sp"></span>
     <span class="chip" id="activeChip">Editing: Drill 1</span>
@@ -180,20 +200,20 @@
       inp.addEventListener("input", e=>{
         const i=+e.target.dataset.i, k=e.target.dataset.k;
         state.drills[i][k]=e.target.value;
-        // also reflect name into drill header immediately
         const hdr = $(`.drill[data-i="${i}"] .name`);
         if(hdr && k==="name") hdr.textContent = e.target.value || `Drill ${i+1}`;
       });
     });
   }
 
-  // ---- Global draw toolbar ----
+  // ---- Global toolbar ----
   const drawbar = $("#drawbar");
   function setActiveTool(tool){
     state.tool = tool;
     $$("button[data-tool]", drawbar).forEach(b=>b.classList.toggle("active", b.dataset.tool===tool));
   }
   setActiveTool('pen');
+
   drawbar.addEventListener("click", e=>{
     const btn = e.target.closest("button");
     if(!btn) return;
@@ -201,6 +221,7 @@
     const act  = btn.dataset.act;
     if(tool){ setActiveTool(tool); return; }
 
+    // actions
     const D = state.drawings[state.active];
     if(act==="undo"){
       if(D.actions.length){ D.redo.push(D.actions.pop()); renderCanvas(state.active); }
@@ -211,6 +232,24 @@
     } else if(act==="grid"){
       D.grid = !D.grid; renderCanvas(state.active);
     }
+  });
+
+  // drill add/remove (global)
+  $("#btnAddDrill").addEventListener("click", ()=>{
+    state.drills.push({name:"New Drill", duration:"", purpose:"", setup:"", exercise:"", progression:""});
+    state.drawings.push({actions:[], redo:[], grid:false});
+    state.active = state.drills.length - 1;
+    renderAll();
+    scrollToDrill(state.active);
+  });
+
+  $("#btnRemoveDrill").addEventListener("click", ()=>{
+    if(!state.drills.length) return;
+    const idx = state.active;
+    state.drills.splice(idx,1);
+    state.drawings.splice(idx,1);
+    state.active = Math.max(0, idx-1);
+    renderAll();
   });
 
   // ---- Drills list ----
@@ -275,6 +314,11 @@
   }
   function updateActiveChip(){
     $("#activeChip").textContent = `Editing: Drill ${state.active+1}`;
+  }
+
+  function scrollToDrill(i){
+    const el = $(`.drill[data-i="${i}"]`);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
   }
 
   // ---- Canvas drawing engine (global toolbar drives it) ----
@@ -389,7 +433,6 @@
   function renderAll(){
     renderOverview();
     renderDrills();
-    // initial render canvases
     state.drills.forEach((_,i)=>renderCanvas(i));
   }
   renderAll();
