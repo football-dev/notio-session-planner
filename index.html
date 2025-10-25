@@ -79,7 +79,26 @@
   body.sidebar-collapsed .toolrow{gap:8px}
   body.sidebar-collapsed .btn{justify-content:center}
   body.sidebar-collapsed .btn .label{display:none}
-  body.sidebar-collapsed .bin{width:42px;height:42px;padding:0;display:flex;align-items:center;justify-content:center}
+  /* Collapsed rail: trash bin = icon only */
+  body.sidebar-collapsed .bin{
+    width:42px; height:42px;
+    padding:0;
+    display:flex; align-items:center; justify-content:center;
+    border:1px dashed #bbb;
+    border-radius:10px;
+    background:#fff;
+    text-indent:-9999px;       /* hide text */
+    overflow:hidden;
+    position:relative;
+  }
+  body.sidebar-collapsed .bin::before{
+    content:"🗑️";
+    text-indent:0;
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px;
+  }
+  body.sidebar-collapsed .bin.active{ border-color:#111; background:#fafafa; }
   /* Hide Numbers section entirely when collapsed */
   body.sidebar-collapsed .sec-numbers{ display:none; }
 
@@ -220,14 +239,14 @@
         <div class="chip">Actions</div>
         <div class="toolrow">
           <button class="small btn" data-act="undo"><span class="ico"><svg viewBox="0 0 24 24"><path d="M8 8H4v4" stroke="#222" stroke-width="1.75" stroke-linecap="round"/><path d="M4 12c2.5-4.5 9-6 13-2c2 2 3 5 3 7" stroke="#222" stroke-width="1.75"/></svg></span><span class="label">Undo</span></button>
-          <button class="small btn" data-act="redo"><span class="ico"><svg viewBox="0 0 24 24"><path d="M16 8h4v4" stroke="#222" stroke-width="1.75" stroke-linecap="round"/><path d="M20 12c-2.5-4.5-9-6-13-2c-2 2-3 5-3 7" stroke="#222" stroke-width="1.75"/></svg></span><span class="label">Redo</span></button>
+          <button class="small btn" data-act="redo"><span class="ico"><svg viewBox="0 0 24 24"><path d="M16 8h4v4" stroke="#222" stroke-width="1.75" stroke-linecap="round"/><path d="M20 12c-2.5-4.5 9-6 13-2c-2 2-3 5-3 7" stroke="#222" stroke-width="1.75"/></svg></span><span class="label">Redo</span></button>
           <button class="small btn" data-act="clear"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 7h16" stroke="#222" stroke-width="1.75"/><path d="M7 7l1 12h8l1-12" stroke="#222" stroke-width="1.75"/><path d="M9 7l1-2h4l1 2" stroke="#222" stroke-width="1.75"/></svg></span><span class="label">Clear</span></button>
           <button class="small btn" data-act="grid"><span class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" stroke="#222" stroke-width="1.75"/><path d="M12 4v16M4 12h16" stroke="#222" stroke-width="1.25"/></svg></span><span class="label">Grid</span></button>
           <button class="small btn" data-act="sizePlus"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#222" stroke-width="1.75" stroke-linecap="round"/></svg></span><span class="label">Size +</span></button>
           <button class="small btn" data-act="sizeMinus"><span class="ico"><svg viewBox="0 0 24 24"><path d="M5 12h14" stroke="#222" stroke-width="1.75" stroke-linecap="round"/></svg></span><span class="label">Size −</span></button>
           <button class="small btn" data-act="deleteSelected"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="#222" stroke-width="1.75" stroke-linecap="round"/></svg></span><span class="label">Delete Selected</span></button>
         </div>
-        <div class="bin" id="trashBin">🗑️ Drag here to delete</div>
+        <div class="bin" id="trashBin" aria-label="Trash bin — drag here to delete">Drag here to delete</div>
         <div class="status" id="activeChip">Editing: Drill 1</div>
       </div>
 
@@ -759,7 +778,9 @@
   renderAll();
 
   // Helpers
-  function esc(s){ return String(s??"").replace(/[&<>]/g, m=>({'&':'&amp;','<':'&gt;','>':'&gt;'}[m])); }
+  function esc(s){
+    return String(s ?? "").replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+  }
 })();
 </script>
 </body>
